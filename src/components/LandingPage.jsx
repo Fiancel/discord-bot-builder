@@ -168,7 +168,13 @@ export default function LandingPage({ onGetStarted }) {
     <div className="min-h-screen text-white" style={{ background: '#0c0d11' }}>
 
       {/* ── NAVBAR ──────────────────────────────────────────── */}
-      <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'glass-dark shadow-lg' : ''}`}>
+      <header className="fixed top-0 inset-x-0 z-50 transition-all duration-300" style={{
+        background:          scrolled ? 'rgba(20,21,24,.8)'          : 'transparent',
+        backdropFilter:      scrolled ? 'blur(16px)'                  : 'none',
+        WebkitBackdropFilter:scrolled ? 'blur(16px)'                  : 'none',
+        borderBottom:        scrolled ? '1px solid rgba(255,255,255,.06)' : '1px solid transparent',
+        boxShadow:           scrolled ? '0 4px 24px rgba(0,0,0,.35)'  : 'none',
+      }}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#5865F2] to-[#a78bfa] flex items-center justify-center shadow-lg">
@@ -178,8 +184,14 @@ export default function LandingPage({ onGetStarted }) {
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-[#96989d]">
-            {['Fonctionnalités', 'Comment ça marche', 'Gratuit'].map(item => (
-              <span key={item} className="hover:text-white cursor-pointer transition-colors">{item}</span>
+            {[
+              { label: 'Fonctionnalités',    id: 'features'     },
+              { label: 'Comment ça marche',  id: 'how-it-works' },
+              { label: 'Gratuit',            id: 'pricing'      },
+            ].map(({ label, id }) => (
+              <span key={id}
+                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })}
+                className="hover:text-white cursor-pointer transition-colors">{label}</span>
             ))}
           </nav>
 
@@ -258,7 +270,7 @@ export default function LandingPage({ onGetStarted }) {
       </section>
 
       {/* ── STATS BAR ───────────────────────────────────────── */}
-      <section className="py-10 px-6" style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', background: 'rgba(255,255,255,.02)' }}>
+      <section id="pricing" className="py-10 px-6" style={{ borderTop: '1px solid rgba(255,255,255,.05)', borderBottom: '1px solid rgba(255,255,255,.05)', background: 'rgba(255,255,255,.02)' }}>
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {STATS.map(({ value, label }) => (
             <div key={label} className="text-center">
@@ -302,7 +314,7 @@ export default function LandingPage({ onGetStarted }) {
       </section>
 
       {/* ── HOW IT WORKS ────────────────────────────────────── */}
-      <section className="py-24 px-6 relative overflow-hidden" style={{ background: 'rgba(255,255,255,.015)' }}>
+      <section id="how-it-works" className="py-24 px-6 relative overflow-hidden" style={{ background: 'rgba(255,255,255,.015)' }}>
         <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none" />
         <div className="max-w-5xl mx-auto relative">
           <div className="text-center mb-16">
