@@ -9,7 +9,11 @@
       "PowerShell(Get-Command *)",
       "PowerShell(where.exe git 2>$null; if \\($LASTEXITCODE -ne 0\\) { \"git non installé\" })",
       "PowerShell(winget *)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI;C:\\\\Program Files\\\\Git\\\\bin\"; cd \"C:\\\\Users\\\\Axel\\\\Desktop\\\\Claude\\\\bot discord\"; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo create discord-bot-builder --private --source=. --remote=origin --push 2>&1)",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI;C:\\\\Program Files\\\\Git\\\\bin\"; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo list --limit 10 2>&1)",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\GitHub CLI;C:\\\\Program Files\\\\Git\\\\bin\"; cd \"C:\\\\Users\\\\Axel\\\\Desktop\\\\Claude\\\\bot discord\"; git log --oneline -3; Write-Host \"---\"; & \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo view Fiancel/discord-bot-builder --json name,url,updatedAt | ConvertFrom-Json | Select-Object name, url)"
     ]
   }
 }

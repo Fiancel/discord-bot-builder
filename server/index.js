@@ -81,6 +81,10 @@ app.post('/api/bot/stop', async (_req, res) => {
   res.json({ ok: true })
 })
 
+/* ── Health check (pour UptimeRobot / Render) ────────────────────────────── */
+
+app.get('/health', (_req, res) => res.json({ status: 'ok', bot: getStatus() }))
+
 /* ── Routes config ───────────────────────────────────────────────────────── */
 
 app.get('/api/config', async (_req, res) => {
