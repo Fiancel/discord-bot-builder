@@ -168,4 +168,13 @@ const PORT = process.env.PORT || 3001
 await initDB()
 server.listen(PORT, () => {
   console.log(`✓ Serveur → http://localhost:${PORT}`)
+
+  // Auto-ping toutes les 4 min pour empêcher Render de dormir
+  if (isProd && process.env.RENDER_EXTERNAL_URL) {
+    const url = `${process.env.RENDER_EXTERNAL_URL}/health`
+    setInterval(() => {
+      fetch(url).catch(() => {})
+    }, 4 * 60 * 1000)
+    console.log(`✓ Auto-ping actif → ${url}`)
+  }
 })
