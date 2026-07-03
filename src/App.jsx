@@ -1,20 +1,38 @@
 import React, { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { BotProvider }           from './context/BotContext'
-import AuthPage       from './components/AuthPage'
-import Sidebar        from './components/Sidebar'
-import Dashboard      from './components/Dashboard'
-import BotConfig      from './components/BotConfig'
-import CommandBuilder from './components/CommandBuilder'
-import EventManager   from './components/EventManager'
-import LogConsole     from './components/LogConsole'
+import AuthPage          from './components/AuthPage'
+import Sidebar           from './components/Sidebar'
+import Dashboard         from './components/Dashboard'
+import BotConfig         from './components/BotConfig'
+import CommandBuilder    from './components/CommandBuilder'
+import EventManager      from './components/EventManager'
+import LogConsole        from './components/LogConsole'
+import AutoResponder     from './components/AutoResponder'
+import XPSystem          from './components/XPSystem'
+import ScheduledMessages from './components/ScheduledMessages'
+import EmbedBuilder      from './components/EmbedBuilder'
+import AntiSpam          from './components/AntiSpam'
+import ModLog            from './components/ModLog'
+import Tickets           from './components/Tickets'
+import RoleManager       from './components/RoleManager'
+import BotStatusPage     from './components/BotStatusPage'
 
 const PAGES = {
-  dashboard: Dashboard,
-  config:    BotConfig,
-  commands:  CommandBuilder,
-  events:    EventManager,
-  console:   LogConsole,
+  dashboard:   Dashboard,
+  config:      BotConfig,
+  commands:    CommandBuilder,
+  events:      EventManager,
+  console:     LogConsole,
+  'auto-resp': AutoResponder,
+  xp:          XPSystem,
+  scheduled:   ScheduledMessages,
+  embeds:      EmbedBuilder,
+  antispam:    AntiSpam,
+  modlog:      ModLog,
+  tickets:     Tickets,
+  roles:       RoleManager,
+  'bot-status':BotStatusPage,
 }
 
 function AppInner() {
@@ -31,7 +49,7 @@ function AppInner() {
 
   if (!user) return <AuthPage />
 
-  const PageComponent = PAGES[activePage]
+  const PageComponent = PAGES[activePage] ?? Dashboard
 
   return (
     <BotProvider>
