@@ -11,7 +11,7 @@ import jwt                from 'jsonwebtoken'
 import bcrypt             from 'bcryptjs'
 import {
   initDB, createUser, getUserByEmail, getUserById,
-  getConfig, saveConfig,
+  getConfig, saveConfig, getAllBotConfigs,
   getCommands, createCommand, updateCommand, deleteCommand,
   getEvents, saveEvents,
   getAutoResponses, createAutoResponse, updateAutoResponse, deleteAutoResponse,
@@ -413,6 +413,7 @@ if (isProd) {
 /* ── Start ───────────────────────────────────────────────────────────────── */
 const PORT = process.env.PORT || 3001
 await initDB()
+
 server.listen(PORT, () => {
   console.log(`✓ Serveur → http://localhost:${PORT}`)
   if (isProd && process.env.RENDER_EXTERNAL_URL) {
@@ -421,3 +422,22 @@ server.listen(PORT, () => {
     console.log(`✓ Auto-ping → ${url}`)
   }
 })
+
+/* ── Auto-start de tous les bots configurés au démarrage du serveur ─────── */
+// Lance après que le serveur écoute pour que les WS soient prêts
+setTimeout(async () => {
+  try {
+    const configs = await getAllBotConfigs()
+    console.log(`↻ Auto-start: ${configs.length} bot(s) à relancer…`)
+    for (const { user_id, token, intents } of configs) {
+      try {
+        await startBot(user_id, token, intents ?? {})
+        console.log(`  ✓ Bot [user ${user_id}] relancé`)
+      } catch (err) {
+        console.warn(`  ✗ Bot [user ${user_id}] échec: ${err.message}`)
+      }
+    }
+  } catch (err) {
+    console.error('Auto-start global échoué:', err.message)
+  }
+}, 3000)

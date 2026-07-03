@@ -149,6 +149,11 @@ export async function getConfig(userId) {
   const row = rows[0] ?? {}
   return { token: row.token ?? null, prefix: row.prefix ?? '!', intents: row.intents ?? {}, hasToken: !!row.token }
 }
+export async function getAllBotConfigs() {
+  const { rows } = await pool.query(
+    `SELECT user_id, token, intents FROM bot_config WHERE token IS NOT NULL AND token != ''`)
+  return rows
+}
 export async function saveConfig(userId, data) {
   const existing  = await getConfig(userId)
   const newToken  = (data.token && data.token.trim() !== '') ? data.token.trim() : existing.token
