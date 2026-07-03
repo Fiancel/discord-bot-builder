@@ -48,6 +48,21 @@ const SCHEMA = `
 `
 
 export async function initDB() {
+  // Si les anciennes tables existent (colonne "id" au lieu de "user_id"), on les supprime
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'bot_config' AND column_name = 'id'
+      ) THEN
+        DROP TABLE IF EXISTS events   CASCADE;
+        DROP TABLE IF EXISTS commands CASCADE;
+        DROP TABLE IF EXISTS bot_config CASCADE;
+        RAISE NOTICE 'Migration : anciennes tables supprimées';
+      END IF;
+    END $$;
+  `)
   await pool.query(SCHEMA)
   console.log('✓ Base de données initialisée')
 }
