@@ -84,13 +84,20 @@ export async function getConfig(userId) {
 }
 
 export async function saveConfig(userId, data) {
+  // Lire la config existante pour préserver le token si non fourni
+  const existing  = await getConfig(userId)
+  const newToken  = (data.token && data.token.trim() !== '') ? data.token.trim() : existing.token
+  const newPrefix = data.prefix  ?? existing.prefix  ?? '!'
+  const newIntents = data.intents ?? existing.intents ?? {}
+
   await pool.query(
-    `INSERT INTO bot_config (user_id, token, prefix, intents) VALUES ($1,$2,$3,$4)
+    `INSERT INTO bot_config (user_id, token, prefix, intents)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (user_id) DO UPDATE SET
-       token   = CASE WHEN $2 IS NOT NULL AND $2 != '' THEN $2 ELSE bot_config.token END,
-       prefix  = COALESCE($3, bot_config.prefix),
-       intents = COALESCE($4::jsonb, bot_config.intents)`,
-    [userId, data.token || null, data.prefix || null, data.intents ? JSON.stringify(data.intents) : null],
+       token   = EXCLUDED.token,
+       prefix  = EXCLUDED.prefix,
+       intents = EXCLUDED.intents`,
+    [userId, newToken, newPrefix, JSON.stringify(newIntents)],
   )
 }
 
@@ -145,7 +152,7 @@ export async function saveEvents(userId, events) {
     await pool.query(
       `INSERT INTO events (user_id, event_id, enabled, cfg) VALUES ($1,$2,$3,$4)
        ON CONFLICT (user_id, event_id) DO UPDATE SET enabled = $3, cfg = $4`,
-      [userId, event_id, !!enabled, JSON.stringify(cfg)],
+      [userId, event_id, !!enabled, cfg ? JSON.stringify(cfg) : '{}'],
     )
   }
 }
