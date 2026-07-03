@@ -145,6 +145,17 @@ function auth(req, res, next) {
 /* ── Sanitize string helper ──────────────────────────────────────────────── */
 const str = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
+/* ── Auto-start bot ──────────────────────────────────────────────────────── */
+function autoStartBot(userId) {
+  if (getStatus(userId) !== 'offline') return   // déjà online ou en cours de connexion
+  getConfig(userId).then(cfg => {
+    if (!cfg.token) return
+    startBot(userId, cfg.token, cfg.intents ?? {}).catch(err => {
+      console.warn(`Auto-start bot [user ${userId}] échoué:`, err.message)
+    })
+  }).catch(() => {})
+}
+
 /* ── Auth routes (publiques + rate-limited) ──────────────────────────────── */
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   const email    = str(req.body?.email, 255).toLowerCase()
@@ -187,6 +198,10 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Email ou mot de passe incorrect' })
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' })
+
+  // Auto-démarrer le bot en arrière-plan si un token est configuré
+  autoStartBot(user.id)
+
   res.json({ token, user: { id: user.id, email: user.email, username: user.username } })
 })
 
@@ -194,6 +209,10 @@ app.get('/api/auth/me', auth, async (req, res) => {
   const user = await getUserById(req.userId)
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
   const { password: _, ...safe } = user
+
+  // Auto-démarrer le bot en arrière-plan si hors ligne et configuré
+  autoStartBot(req.userId)
+
   res.json(safe)
 })
 

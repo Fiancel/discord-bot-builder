@@ -158,7 +158,7 @@ export default function BotConfig() {
             </button>
           </div>
           <p className="text-xs text-[#72767d] mt-2 flex items-center gap-1">
-            <Shield size={11} /> Stocké localement dans <code className="text-[#96989d]">data/config.json</code>
+            <Shield size={11} /> Chiffré et stocké dans votre compte — jamais partagé
           </p>
         </section>
 
