@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { BotProvider } from './context/BotContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { BotProvider }           from './context/BotContext'
+import AuthPage       from './components/AuthPage'
 import Sidebar        from './components/Sidebar'
 import Dashboard      from './components/Dashboard'
 import BotConfig      from './components/BotConfig'
@@ -15,8 +17,20 @@ const PAGES = {
   console:   LogConsole,
 }
 
-export default function App() {
+function AppInner() {
+  const { user, loading } = useAuth()
   const [activePage, setActivePage] = useState('dashboard')
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#36393f] flex items-center justify-center">
+        <div className="text-[#72767d] text-sm">Chargement…</div>
+      </div>
+    )
+  }
+
+  if (!user) return <AuthPage />
+
   const PageComponent = PAGES[activePage]
 
   return (
@@ -28,5 +42,13 @@ export default function App() {
         </main>
       </div>
     </BotProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }

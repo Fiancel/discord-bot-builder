@@ -1,7 +1,6 @@
 import pg from 'pg'
 const { Pool } = pg
 
-// SSL : actif pour toute connexion distante (Supabase, Railway…)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
@@ -9,32 +8,42 @@ const pool = new Pool({
     : false,
 })
 
-/* ── Schéma ─────────────────────────────────────────────────────────────── */
+/* ── Schéma multi-utilisateurs ───────────────────────────────────────────── */
 
 const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS bot_config (
-    id      INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    token   TEXT,
-    prefix  VARCHAR(10)  DEFAULT '!',
-    intents JSONB        DEFAULT '{}'
+  CREATE TABLE IF NOT EXISTS users (
+    id         SERIAL PRIMARY KEY,
+    email      VARCHAR(255) UNIQUE NOT NULL,
+    password   TEXT NOT NULL,
+    username   VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
   );
 
-  INSERT INTO bot_config (id) VALUES (1) ON CONFLICT DO NOTHING;
+  CREATE TABLE IF NOT EXISTS bot_config (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    token   TEXT,
+    prefix  VARCHAR(10) DEFAULT '!',
+    intents JSONB DEFAULT '{}'
+  );
 
   CREATE TABLE IF NOT EXISTS commands (
-    id          BIGINT       PRIMARY KEY,
+    id          BIGINT  NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name        VARCHAR(100) NOT NULL,
-    description TEXT         DEFAULT '',
-    response    TEXT         NOT NULL DEFAULT '',
-    enabled     BOOLEAN      DEFAULT TRUE,
-    created_at  TIMESTAMPTZ  DEFAULT NOW(),
-    CONSTRAINT  commands_name_unique UNIQUE (name)
+    description TEXT    DEFAULT '',
+    response    TEXT    NOT NULL DEFAULT '',
+    enabled     BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (id),
+    UNIQUE (user_id, name)
   );
 
   CREATE TABLE IF NOT EXISTS events (
-    event_id TEXT    PRIMARY KEY,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id TEXT    NOT NULL,
     enabled  BOOLEAN DEFAULT FALSE,
-    cfg      JSONB   DEFAULT '{}'
+    cfg      JSONB   DEFAULT '{}',
+    PRIMARY KEY (user_id, event_id)
   );
 `
 
@@ -43,90 +52,100 @@ export async function initDB() {
   console.log('✓ Base de données initialisée')
 }
 
-/* ── Config ─────────────────────────────────────────────────────────────── */
+/* ── Utilisateurs ────────────────────────────────────────────────────────── */
 
-export async function getConfig() {
-  const { rows } = await pool.query('SELECT * FROM bot_config WHERE id = 1')
-  const row = rows[0] ?? {}
-  return {
-    token:    row.token   ?? null,
-    prefix:   row.prefix  ?? '!',
-    intents:  row.intents ?? {},
-    hasToken: !!row.token,
-  }
-}
-
-export async function saveConfig(data) {
-  const parts  = []
-  const values = []
-  let i = 1
-
-  if (data.token   && data.token !== '')  { parts.push(`token = $${i++}`);   values.push(data.token) }
-  if (data.prefix  !== undefined)         { parts.push(`prefix = $${i++}`);  values.push(data.prefix) }
-  if (data.intents !== undefined)         { parts.push(`intents = $${i++}`); values.push(JSON.stringify(data.intents)) }
-
-  if (!parts.length) return
-  await pool.query(`UPDATE bot_config SET ${parts.join(', ')} WHERE id = 1`, values)
-}
-
-/* ── Commands ───────────────────────────────────────────────────────────── */
-
-export async function getCommands() {
-  const { rows } = await pool.query('SELECT * FROM commands ORDER BY created_at ASC')
-  return rows
-}
-
-export async function createCommand(cmd) {
+export async function createUser(email, password, username) {
   const { rows } = await pool.query(
-    `INSERT INTO commands (id, name, description, response, enabled)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [cmd.id, cmd.name, cmd.description ?? '', cmd.response, cmd.enabled ?? true],
+    `INSERT INTO users (email, password, username) VALUES ($1,$2,$3)
+     RETURNING id, email, username, created_at`,
+    [email, password, username],
   )
   return rows[0]
 }
 
-export async function updateCommand(id, data) {
-  const parts  = []
-  const values = []
-  let i = 1
+export async function getUserByEmail(email) {
+  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+  return rows[0] ?? null
+}
 
-  if (data.name        !== undefined) { parts.push(`name = $${i++}`);        values.push(data.name) }
-  if (data.description !== undefined) { parts.push(`description = $${i++}`); values.push(data.description) }
-  if (data.response    !== undefined) { parts.push(`response = $${i++}`);    values.push(data.response) }
-  if (data.enabled     !== undefined) { parts.push(`enabled = $${i++}`);     values.push(data.enabled) }
-
-  if (!parts.length) return null
-  values.push(id)
+export async function getUserById(id) {
   const { rows } = await pool.query(
-    `UPDATE commands SET ${parts.join(', ')} WHERE id = $${i} RETURNING *`,
-    values,
+    'SELECT id, email, username, created_at FROM users WHERE id = $1', [id]
   )
   return rows[0] ?? null
 }
 
-export async function deleteCommand(id) {
-  await pool.query('DELETE FROM commands WHERE id = $1', [id])
+/* ── Config ──────────────────────────────────────────────────────────────── */
+
+export async function getConfig(userId) {
+  const { rows } = await pool.query('SELECT * FROM bot_config WHERE user_id = $1', [userId])
+  const row = rows[0] ?? {}
+  return { token: row.token ?? null, prefix: row.prefix ?? '!', intents: row.intents ?? {}, hasToken: !!row.token }
 }
 
-/* ── Events ─────────────────────────────────────────────────────────────── */
+export async function saveConfig(userId, data) {
+  await pool.query(
+    `INSERT INTO bot_config (user_id, token, prefix, intents) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (user_id) DO UPDATE SET
+       token   = CASE WHEN $2 IS NOT NULL AND $2 != '' THEN $2 ELSE bot_config.token END,
+       prefix  = COALESCE($3, bot_config.prefix),
+       intents = COALESCE($4::jsonb, bot_config.intents)`,
+    [userId, data.token || null, data.prefix || null, data.intents ? JSON.stringify(data.intents) : null],
+  )
+}
 
-export async function getEvents() {
-  const { rows } = await pool.query('SELECT * FROM events')
+/* ── Commandes ───────────────────────────────────────────────────────────── */
+
+export async function getCommands(userId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM commands WHERE user_id = $1 ORDER BY created_at ASC', [userId]
+  )
+  return rows
+}
+
+export async function createCommand(userId, cmd) {
+  const { rows } = await pool.query(
+    `INSERT INTO commands (id, user_id, name, description, response, enabled)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [cmd.id, userId, cmd.name, cmd.description ?? '', cmd.response, cmd.enabled ?? true],
+  )
+  return rows[0]
+}
+
+export async function updateCommand(userId, id, data) {
+  const parts = []; const values = []; let i = 1
+  if (data.name        !== undefined) { parts.push(`name = $${i++}`);        values.push(data.name) }
+  if (data.description !== undefined) { parts.push(`description = $${i++}`); values.push(data.description) }
+  if (data.response    !== undefined) { parts.push(`response = $${i++}`);    values.push(data.response) }
+  if (data.enabled     !== undefined) { parts.push(`enabled = $${i++}`);     values.push(data.enabled) }
+  if (!parts.length) return null
+  values.push(id, userId)
+  const { rows } = await pool.query(
+    `UPDATE commands SET ${parts.join(', ')} WHERE id = $${i} AND user_id = $${i+1} RETURNING *`, values
+  )
+  return rows[0] ?? null
+}
+
+export async function deleteCommand(userId, id) {
+  await pool.query('DELETE FROM commands WHERE id = $1 AND user_id = $2', [id, userId])
+}
+
+/* ── Événements ──────────────────────────────────────────────────────────── */
+
+export async function getEvents(userId) {
+  const { rows } = await pool.query('SELECT * FROM events WHERE user_id = $1', [userId])
   const result = {}
-  for (const row of rows) {
-    result[row.event_id] = { enabled: row.enabled, ...(row.cfg ?? {}) }
-  }
+  for (const row of rows) result[row.event_id] = { enabled: row.enabled, ...(row.cfg ?? {}) }
   return result
 }
 
-export async function saveEvents(events) {
+export async function saveEvents(userId, events) {
   for (const [event_id, data] of Object.entries(events)) {
     const { enabled = false, ...cfg } = data ?? {}
     await pool.query(
-      `INSERT INTO events (event_id, enabled, cfg)
-       VALUES ($1,$2,$3)
-       ON CONFLICT (event_id) DO UPDATE SET enabled = $2, cfg = $3`,
-      [event_id, !!enabled, JSON.stringify(cfg)],
+      `INSERT INTO events (user_id, event_id, enabled, cfg) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (user_id, event_id) DO UPDATE SET enabled = $3, cfg = $4`,
+      [userId, event_id, !!enabled, JSON.stringify(cfg)],
     )
   }
 }
