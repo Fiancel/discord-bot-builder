@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Bot, Zap, Shield, BarChart3, MessageSquare, Clock, Layers,
   Users, Activity, Reply, Star, ShieldAlert, Ticket, ClipboardList,
-  ArrowRight, Check, ChevronRight, Github, ExternalLink, Play,
+  ArrowRight, Check, ChevronRight, Play,
   Sparkles, Globe, Lock, TrendingUp,
 } from 'lucide-react'
 
@@ -451,14 +451,9 @@ export default function LandingPage({ onGetStarted }) {
             <span className="text-[#72767d] text-sm">Discord Bot Builder</span>
           </div>
           <p className="text-[#4f5259] text-xs">
-            Fait avec ♥ pour la communauté Discord · 100% gratuit · Open Source
+            Fait avec ♥ pour la communauté Discord · 100% gratuit
           </p>
-          <div className="flex items-center gap-3">
-            <a href="https://github.com/Fiancel/discord-bot-builder" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-xs text-[#72767d] hover:text-white transition-colors">
-              <Github size={14} /> GitHub <ExternalLink size={10} />
-            </a>
-          </div>
+          <p className="text-[#3a3c42] text-xs">© {new Date().getFullYear()} Discord Bot Builder · Tous droits réservés</p>
         </div>
       </footer>
     </div>
