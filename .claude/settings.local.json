@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:claude.ai)",
+      "PowerShell(cd \"C:\\\\Users\\\\Axel\\\\Desktop\\\\Claude\\\\bot discord\"; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'npm run dev' -WindowStyle Normal)",
+      "PowerShell(Start-Sleep -Seconds 3; Start-Process \"http://localhost:5173\")",
+      "PowerShell(Receive-Job *)",
+      "PowerShell(Start-Sleep -Seconds 4; Start-Process \"http://localhost:5173\")",
+      "PowerShell(Get-Command *)",
+      "PowerShell(where.exe git 2>$null; if \\($LASTEXITCODE -ne 0\\) { \"git non installé\" })",
+      "PowerShell(winget *)",
+      "PowerShell(git *)"
+    ]
+  }
+}

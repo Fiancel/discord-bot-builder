@@ -1,0 +1,6 @@
+# Configuration Nixpacks pour Railway/Koyeb
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
