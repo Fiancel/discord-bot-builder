@@ -158,7 +158,7 @@ app.get('/api/stats', async (_req, res) => {
 if (isProd) {
   const dist = path.join(__dirname, '..', 'dist')
   app.use(express.static(dist))
-  app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')))
+  app.use((_req, res) => res.sendFile(path.join(dist, 'index.html')))
 }
 
 /* ── Démarrage ───────────────────────────────────────────────────────────── */
